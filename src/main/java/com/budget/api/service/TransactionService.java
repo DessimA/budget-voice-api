@@ -63,6 +63,7 @@ public final class TransactionService {
         return totalIncome.subtract(totalExpense);
     }
 
+    @SuppressWarnings("null")
     public MonthlySummaryResponse getMonthlySummary(int month, int year) {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate start = yearMonth.atDay(1);
@@ -107,6 +108,7 @@ public final class TransactionService {
         );
     }
 
+    @SuppressWarnings("null")
     public Map<String, BigDecimal> getBalanceByCategory() {
         List<Transaction> all = repository.findAll();
         return all.stream()
