@@ -7,15 +7,17 @@ import com.budget.api.dto.MonthlySummaryResponse;
 import com.budget.api.dto.MonthlySummaryResponse.CategorySummary;
 import com.budget.api.dto.TransactionResponse;
 import com.budget.api.repository.TransactionRepository;
+import com.budget.api.util.FormatUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,9 +35,9 @@ public final class TransactionService {
                                                   String type, String category, String date) {
         validationService.validateTransaction(description, amount, type, category, date);
 
-        TransactionType transactionType = validationService.parseType(type);
-        TransactionCategory transactionCategory = validationService.parseCategory(category);
-        LocalDate transactionDate = LocalDate.parse(date, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        TransactionType transactionType = TransactionType.valueOf(type.toUpperCase());
+        TransactionCategory transactionCategory = TransactionCategory.valueOf(category.toUpperCase());
+        LocalDate transactionDate = LocalDate.parse(date, FormatUtils.DATE_STORAGE);
 
         Transaction transaction = new Transaction(description, amount, transactionType,
                                                   transactionCategory, transactionDate);
@@ -43,15 +45,13 @@ public final class TransactionService {
         return TransactionResponse.from(saved);
     }
 
-    public List<TransactionResponse> getAllTransactions() {
-        return repository.findAllByOrderByTransactionDateDesc()
-            .stream()
-            .map(TransactionResponse::from)
-            .toList();
+    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
+        return repository.findAllByOrderByTransactionDateDesc(pageable)
+            .map(TransactionResponse::from);
     }
 
     public List<TransactionResponse> getTransactionsByPeriod(LocalDate start, LocalDate end) {
-        return repository.findByTransactionDateBetween(start, end)
+        return repository.findByTransactionDateBetweenOrderByTransactionDateDesc(start, end)
             .stream()
             .map(TransactionResponse::from)
             .toList();
@@ -63,7 +63,6 @@ public final class TransactionService {
         return totalIncome.subtract(totalExpense);
     }
 
-    @SuppressWarnings("null")
     public MonthlySummaryResponse getMonthlySummary(int month, int year) {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate start = yearMonth.atDay(1);
@@ -77,27 +76,19 @@ public final class TransactionService {
             .orElse(BigDecimal.ZERO);
         BigDecimal balance = totalIncome.subtract(totalExpense);
 
-        List<Transaction> transactions = repository.findByTransactionDateBetween(start, end);
-        Map<TransactionCategory, List<Transaction>> grouped = transactions.stream()
-            .collect(Collectors.groupingBy(Transaction::getCategory));
-
-        List<CategorySummary> byCategory = grouped.entrySet().stream()
-            .map(entry -> {
-                TransactionCategory cat = entry.getKey();
-                List<Transaction> txns = entry.getValue();
-                BigDecimal total = txns.stream()
-                    .map(t -> t.getType() == TransactionType.EXPENSE
-                        ? t.getAmount().negate() : t.getAmount())
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-                return new CategorySummary(
-                    cat.name(),
-                    cat.getDescricao(),
-                    total.setScale(2, RoundingMode.HALF_EVEN),
-                    txns.size()
-                );
-            })
-            .sorted(Comparator.comparing(CategorySummary::categoryDescription))
-            .toList();
+        List<Object[]> categoryData = repository.sumAmountGroupedByCategoryBetween(start, end);
+        List<CategorySummary> byCategory = new ArrayList<>();
+        for (Object[] row : categoryData) {
+            TransactionCategory cat = (TransactionCategory) row[0];
+            BigDecimal total = (BigDecimal) row[1];
+            Long count = (Long) row[2];
+            byCategory.add(new CategorySummary(
+                cat.name(),
+                cat.getDescricao(),
+                total.setScale(2, RoundingMode.HALF_EVEN),
+                count
+            ));
+        }
 
         return new MonthlySummaryResponse(
             month, year,
@@ -108,19 +99,14 @@ public final class TransactionService {
         );
     }
 
-    @SuppressWarnings("null")
     public Map<String, BigDecimal> getBalanceByCategory() {
-        List<Transaction> all = repository.findAll();
-        return all.stream()
-            .collect(Collectors.groupingBy(
-                t -> t.getCategory().getDescricao(),
-                LinkedHashMap::new,
-                Collectors.reducing(
-                    BigDecimal.ZERO,
-                    t -> t.getType() == TransactionType.EXPENSE
-                        ? t.getAmount().negate() : t.getAmount(),
-                    BigDecimal::add
-                )
-            ));
+        List<Object[]> categoryData = repository.sumAmountGroupedByCategory();
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
+        for (Object[] row : categoryData) {
+            TransactionCategory cat = (TransactionCategory) row[0];
+            BigDecimal total = (BigDecimal) row[1];
+            result.put(cat.getDescricao(), total.setScale(2, RoundingMode.HALF_EVEN));
+        }
+        return result;
     }
 }
