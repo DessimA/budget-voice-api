@@ -204,13 +204,19 @@ async function renderHealthSection() {
   setLoading('health-card', false);
 }
 
-function initCommandSection() {
-  const uploadZone = document.getElementById('command-upload-zone');
-  const fileInput = document.getElementById('command-file-input');
-  const preview = document.getElementById('command-preview');
-  const sendBtn = document.getElementById('command-send-btn');
-  const micBtn = document.getElementById('command-mic-btn');
+function initVoiceSection() {
+  const uploadZone = document.getElementById('voice-upload-zone');
+  const fileInput = document.getElementById('voice-file-input');
+  const preview = document.getElementById('voice-preview');
+  const sendBtn = document.getElementById('voice-send-btn');
+  const micBtn = document.getElementById('voice-mic-btn');
+  const result = document.getElementById('voice-result');
   let selectedFile = null;
+
+  function getResponseType() {
+    const selected = document.querySelector('input[name="voice-response-type"]:checked');
+    return selected ? selected.value : 'text';
+  }
 
   function updatePreview(file) {
     selectedFile = file;
@@ -239,162 +245,6 @@ function initCommandSection() {
   }
 
   uploadZone.addEventListener('click', () => fileInput.click());
-
-  uploadZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadZone.classList.add('drag-over');
-  });
-
-  uploadZone.addEventListener('dragleave', () => {
-    uploadZone.classList.remove('drag-over');
-  });
-
-  uploadZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadZone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) updatePreview(file);
-  });
-
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) updatePreview(fileInput.files[0]);
-  });
-
-  sendBtn.addEventListener('click', async () => {
-    if (!selectedFile) {
-      createToast('Please select an audio file first', 'warning');
-      return;
-    }
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    document.getElementById('command-send-result').innerHTML = '';
-
-    try {
-      const formData = new FormData();
-      formData.append('audio', selectedFile);
-      const res = await fetch(getBaseUrl().replace(/\/+$/, '') + '/api/voice/command', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      const container = document.getElementById('command-send-result');
-      const statusInfo = statusLabel(res.status);
-      const badge = createBadge(statusInfo.text, statusInfo.type);
-      const resultPanel = document.createElement('div');
-      resultPanel.className = 'result-panel';
-      resultPanel.appendChild(badge);
-      if (data.transcribedText) {
-        const tLabel = document.createElement('h3');
-        tLabel.textContent = 'Transcrição';
-        const tText = document.createElement('p');
-        tText.className = 'result-text';
-        tText.textContent = data.transcribedText;
-        resultPanel.appendChild(tLabel);
-        resultPanel.appendChild(tText);
-      }
-      if (data.aiResponse) {
-        const rLabel = document.createElement('h3');
-        rLabel.textContent = 'Resposta';
-        const rText = document.createElement('p');
-        rText.className = 'result-text';
-        rText.textContent = data.aiResponse;
-        resultPanel.appendChild(rLabel);
-        resultPanel.appendChild(rText);
-      }
-      container.appendChild(resultPanel);
-      container.appendChild(createCodeBlock(data, true, false));
-      if (data.status === 'success') {
-        createToast('Comando processado com sucesso', 'success');
-      } else {
-        createToast('Comando processado com ressalvas', 'warning');
-      }
-    } catch (err) {
-      const container = document.getElementById('command-send-result');
-      const msg = err.name === 'TypeError' && err.message.includes('Failed to fetch')
-        ? `Servidor inacessível em ${getBaseUrl()}`
-        : err.message;
-      container.innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
-      createToast('Falha na requisição', 'error');
-    }
-
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Send Command';
-  });
-
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
-
-    micBtn.addEventListener('click', async () => {
-      if (isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-        micBtn.textContent = '🎤 Record';
-        return;
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) audioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-          const file = new File([blob], `recording.${mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm'}`, { type: mediaRecorder.mimeType });
-          updatePreview(file);
-          stream.getTracks().forEach(t => t.stop());
-        };
-
-        mediaRecorder.start();
-        isRecording = true;
-        micBtn.textContent = '⏹ Stop';
-        createToast('Recording...', 'info');
-      } catch {
-        createToast('Microphone access denied', 'error');
-      }
-    });
-  } else {
-    micBtn.style.display = 'none';
-  }
-}
-
-async function initAudioSection() {
-  const uploadZone = document.getElementById('audio-upload-zone');
-  const fileInput = document.getElementById('audio-file-input');
-  const preview = document.getElementById('audio-preview');
-  const sendBtn = document.getElementById('audio-send-btn');
-  const result = document.getElementById('audio-result');
-  let selectedFile = null;
-
-  function updatePreview(file) {
-    selectedFile = file;
-    if (file) {
-      uploadZone.classList.add('has-file');
-      preview.innerHTML = `
-        <div class="upload-preview">
-          <span>🎵</span>
-          <span class="upload-name">${escapeHtml(file.name)}</span>
-          <span class="upload-size">(${(file.size / 1024).toFixed(1)} KB)</span>
-          <span class="upload-remove" style="cursor:pointer;color:var(--color-accent-red);">✕</span>
-        </div>`;
-      preview.querySelector('.upload-remove').onclick = (e) => {
-        e.stopPropagation();
-        fileInput.value = '';
-        selectedFile = null;
-        updatePreview(null);
-      };
-    } else {
-      uploadZone.classList.remove('has-file');
-      preview.innerHTML = `<div class="upload-placeholder"><p>Click or drag to upload an audio command</p></div>`;
-    }
-  }
-
-  uploadZone.addEventListener('click', () => fileInput.click());
   uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
   uploadZone.addEventListener('drop', (e) => {
@@ -406,67 +256,137 @@ async function initAudioSection() {
 
   sendBtn.addEventListener('click', async () => {
     if (!selectedFile) {
-      createToast('Select an audio file first', 'warning');
+      createToast('Selecione um arquivo de áudio primeiro', 'warning');
       return;
     }
+    const responseType = getResponseType();
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Processing...';
+    sendBtn.textContent = 'Enviando...';
     result.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
 
     try {
       const formData = new FormData();
       formData.append('audio', selectedFile);
-      const res = await fetch(getBaseUrl().replace(/\/+$/, '') + '/api/voice/command/audio', { method: 'POST', body: formData });
+      const endpoint = responseType === 'audio' ? '/api/voice/command/audio' : '/api/voice/command';
+      const res = await fetch(getBaseUrl().replace(/\/+$/, '') + endpoint, { method: 'POST', body: formData });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        let errData;
-        if (contentType.includes('json')) {
-          errData = await res.json().catch(() => ({ error: res.statusText }));
-        } else {
-          const text = await res.text().catch(() => res.statusText);
-          errData = { error: text };
+      if (responseType === 'audio') {
+        if (!res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          let errData;
+          if (contentType.includes('json')) {
+            errData = await res.json().catch(() => ({ error: res.statusText }));
+          } else {
+            const text = await res.text().catch(() => res.statusText);
+            errData = { error: text };
+          }
+          result.innerHTML = '';
+          const alert = document.createElement('div');
+          alert.className = 'alert alert-error';
+          alert.textContent = errData.error || `HTTP ${res.status} ${res.statusText}`;
+          result.appendChild(alert);
+          result.appendChild(createCodeBlock(errData, true, false));
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Enviar';
+          return;
         }
+
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
         result.innerHTML = '';
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-error';
-        const errorMsg = errData.error || `HTTP ${res.status} ${res.statusText}`;
-        alert.textContent = errorMsg;
-        result.appendChild(alert);
-        result.appendChild(createCodeBlock(errData, true, false));
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Get Audio Response';
-        return;
+
+        const audioEl = document.createElement('audio');
+        audioEl.className = 'audio-player';
+        audioEl.controls = true;
+        audioEl.src = audioUrl;
+        result.appendChild(audioEl);
+
+        const info = document.createElement('p');
+        info.className = 'small text-muted';
+        info.style.marginTop = '8px';
+        info.textContent = `Resposta em áudio (${(blob.size / 1024).toFixed(1)} KB)`;
+        result.appendChild(info);
+
+        createToast('Resposta em áudio recebida', 'success');
+      } else {
+        const data = await res.json();
+        result.innerHTML = '';
+        const statusInfo = statusLabel(res.status);
+        const badge = createBadge(statusInfo.text, statusInfo.type);
+        const resultPanel = document.createElement('div');
+        resultPanel.className = 'result-panel';
+        resultPanel.appendChild(badge);
+        if (data.transcribedText) {
+          const tLabel = document.createElement('h3');
+          tLabel.textContent = 'Transcrição';
+          const tText = document.createElement('p');
+          tText.className = 'result-text';
+          tText.textContent = data.transcribedText;
+          resultPanel.appendChild(tLabel);
+          resultPanel.appendChild(tText);
+        }
+        if (data.aiResponse) {
+          const rLabel = document.createElement('h3');
+          rLabel.textContent = 'Resposta';
+          const rText = document.createElement('p');
+          rText.className = 'result-text';
+          rText.textContent = data.aiResponse;
+          resultPanel.appendChild(rLabel);
+          resultPanel.appendChild(rText);
+        }
+        result.appendChild(resultPanel);
+        result.appendChild(createCodeBlock(data, true, false));
+        createToast(data.status === 'success' ? 'Comando processado' : 'Comando processado com ressalvas', 'success');
       }
-
-      const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      result.innerHTML = '';
-
-      const audioEl = document.createElement('audio');
-      audioEl.className = 'audio-player';
-      audioEl.controls = true;
-      audioEl.src = audioUrl;
-      result.appendChild(audioEl);
-
-      const info = document.createElement('p');
-      info.className = 'small text-muted';
-      info.style.marginTop = '8px';
-      info.textContent = `Audio response (${(blob.size / 1024).toFixed(1)} KB)`;
-      result.appendChild(info);
-
-      createToast('Audio response received', 'success');
     } catch (err) {
       const msg = err.name === 'TypeError' && err.message.includes('Failed to fetch')
         ? `Servidor inacessível em ${getBaseUrl()}`
         : err.message;
       result.innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
-      createToast('Falha na requisição de áudio', 'error');
+      createToast('Falha na requisição', 'error');
     }
 
     sendBtn.disabled = false;
-    sendBtn.textContent = 'Get Audio Response';
+    sendBtn.textContent = 'Enviar';
   });
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    micBtn.addEventListener('click', async () => {
+      if (isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.textContent = '🎤 Gravar';
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+          const file = new File([blob], `recording.${mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm'}`, { type: mediaRecorder.mimeType });
+          updatePreview(file);
+          stream.getTracks().forEach(t => t.stop());
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        micBtn.textContent = '⏹ Parar';
+        createToast('Gravando...', 'info');
+      } catch {
+        createToast('Acesso ao microfone negado', 'error');
+      }
+    });
+  } else {
+    micBtn.style.display = 'none';
+  }
 }
 
 async function renderTransactionsSection(page = 0) {
@@ -575,11 +495,6 @@ async function renderBalanceSection() {
     const numericBalance = typeof balance === 'number' ? balance : parseFloat(balance);
     display.textContent = formatBRL(numericBalance);
     display.className = `balance-display ${numericBalance >= 0 ? 'green' : 'red'}`;
-
-    if (data.period) {
-      const periodEl = document.getElementById('balance-period');
-      if (periodEl) periodEl.textContent = `Period: ${data.period}`;
-    }
 
     const resultArea = document.getElementById('balance-result');
     resultArea.innerHTML = '';
@@ -749,10 +664,8 @@ function initConfigSection() {
 
 const SECTION_MAP = {
   '#health': 'section-health',
-  '#voice-text': 'section-voice-text',
-  '#voice-audio': 'section-voice-audio',
+  '#voice': 'section-voice',
   '#transactions': 'section-transactions',
-  '#balance': 'section-balance',
   '#summary': 'section-summary',
   '#settings': 'section-settings',
 };
@@ -772,9 +685,10 @@ function navigateTo(hash) {
   window.location.hash = hash;
 
   if (hash === '#health') renderHealthSection();
-  else if (hash === '#transactions') renderTransactionsSection(0);
-  else if (hash === '#balance') renderBalanceSection();
-  else if (hash === '#summary') renderSummarySection();
+  else if (hash === '#transactions') {
+    renderBalanceSection();
+    renderTransactionsSection(0);
+  } else if (hash === '#summary') renderSummarySection();
 }
 
 window.addEventListener('hashchange', () => {
@@ -782,8 +696,7 @@ window.addEventListener('hashchange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  initCommandSection();
-  initAudioSection();
+  initVoiceSection();
   initConfigSection();
   checkHealth();
 
