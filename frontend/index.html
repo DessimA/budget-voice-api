@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Voice API - Test Interface</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <svg class="header-logo" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+      <h1 class="header-title">Budget Voice API</h1>
+      <span class="header-badge" id="status-badge">Offline</span>
+    </div>
+    <div class="header-right">
+      <span class="header-base-url" id="headerBaseUrl">http://localhost:8080</span>
+      <span id="status-label" class="text-muted small" style="margin-left:8px;"></span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar">
+      <ul class="sidebar-nav">
+        <li><a href="#health" class="sidebar-link active">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Health Check</span>
+        </a></li>
+        <li><a href="#voice-text" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+          <span>Comando de Voz</span>
+        </a></li>
+        <li><a href="#voice-audio" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span>Comando com Áudio</span>
+        </a></li>
+        <li><a href="#transactions" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Transações</span>
+        </a></li>
+        <li><a href="#balance" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Saldo</span>
+        </a></li>
+        <li><a href="#summary" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Resumo Mensal</span>
+        </a></li>
+        <li><a href="#settings" class="sidebar-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Configurações</span>
+        </a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+
+      <section id="section-health" class="section active">
+        <h2 class="section-title">Health Check</h2>
+        <div class="card" id="health-card">
+          <div class="card-loader"><div class="spinner"></div></div>
+          <div class="card-body">
+            <p id="health-status-text" class="result-text">Checking...</p>
+            <div id="health-result" class="result-area" style="margin-top:12px;">
+              <div class="result-header">
+                <span class="badge">-</span>
+              </div>
+              <div class="json-result"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-voice-text" class="section">
+        <h2 class="section-title">Comando de Voz (Texto)</h2>
+        <div class="upload-zone" id="command-upload-zone">
+          <div id="command-preview">
+            <div class="upload-placeholder">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Click or drag an audio file here (MP3, WAV, OGG, M4A)</p>
+            </div>
+          </div>
+          <input type="file" class="upload-input" id="command-file-input" accept=".wav,.mp3,.m4a,.ogg,.flac,.webm,audio/*">
+        </div>
+        <div class="form-row">
+          <button class="btn btn-primary" id="command-send-btn">Send Command</button>
+          <button class="btn btn-secondary" id="command-mic-btn">🎤 Record</button>
+        </div>
+        <div id="command-send-result"></div>
+      </section>
+
+      <section id="section-voice-audio" class="section">
+        <h2 class="section-title">Comando de Voz (Áudio)</h2>
+        <div class="upload-zone" id="audio-upload-zone">
+          <div id="audio-preview">
+            <div class="upload-placeholder">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Click or drag to upload an audio command</p>
+            </div>
+          </div>
+          <input type="file" class="upload-input" id="audio-file-input" accept=".wav,.mp3,.m4a,.ogg,.flac,.webm,audio/*">
+        </div>
+        <div class="alert alert-warning">
+          O Coqui TTS pode levar alguns minutos para inicializar no primeiro uso. Se receber erro 503, aguarde e tente novamente.
+        </div>
+        <button class="btn btn-primary" id="audio-send-btn">Get Audio Response</button>
+        <div id="audio-result" style="margin-top:16px;"></div>
+      </section>
+
+      <section id="section-transactions" class="section">
+        <h2 class="section-title">Transações</h2>
+        <div id="transactions-table"></div>
+        <div class="pagination" id="transactions-pagination"></div>
+      </section>
+
+      <section id="section-balance" class="section">
+        <h2 class="section-title">Saldo</h2>
+        <div class="card" id="balance-card">
+          <div class="card-loader"><div class="spinner"></div></div>
+          <div class="card-body">
+            <div class="balance-display muted" id="balance-display">R$ --</div>
+            <p id="balance-period" class="text-muted small" style="text-align:center;"></p>
+            <div id="balance-result" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-summary" class="section">
+        <h2 class="section-title">Resumo Mensal</h2>
+        <div class="form-row">
+          <label>Mês:
+            <select class="input" id="summary-month"></select>
+          </label>
+          <label>Ano:
+            <select class="input" id="summary-year"></select>
+          </label>
+          <button class="btn btn-primary" id="summary-load-btn">Load Summary</button>
+        </div>
+        <div id="summary-result"></div>
+      </section>
+
+      <section id="section-settings" class="section">
+        <h2 class="section-title">Configurações</h2>
+        <div class="form-group">
+          <label for="config-base-url">Base URL da API</label>
+          <input type="text" class="input" id="config-base-url" value="http://localhost:8080">
+        </div>
+        <div class="form-row">
+          <button class="btn btn-primary" id="config-save-btn">Salvar</button>
+          <button class="btn btn-secondary" id="config-test-btn">Testar Conexão</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <span>Budget Voice API v1.0.0</span>
+    <a href="https://github.com/DessimA/budget-voice-api" target="_blank" class="footer-link">GitHub</a>
+  </footer>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -19,23 +19,18 @@ services:
       - budget_network
 
   tts:
-    image: ghcr.io/coqui-ai/tts-cpu
+    build:
+      context: ./tts_service
+      dockerfile: Dockerfile
     container_name: budget_tts
-    entrypoint: python3
-    command: >
-      TTS/server/server.py
-      --model_name tts_models/pt/cv/vits
-      --port 5002
     ports:
       - "5002:5002"
-    volumes:
-      - tts_models_cache:/root/.local/share/tts
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5002/api/tts?text=ok')\""]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 10s
     networks:
       - budget_network
 
@@ -63,7 +58,6 @@ services:
 
 volumes:
   postgres_data:
-  tts_models_cache:
 
 networks:
   budget_network:

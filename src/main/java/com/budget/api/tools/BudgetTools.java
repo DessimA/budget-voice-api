@@ -6,6 +6,7 @@ import com.budget.api.util.FormatUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import org.springframework.ai.tool.annotation.Tool;
@@ -21,13 +22,24 @@ public final class BudgetTools {
         this.transactionService = transactionService;
     }
 
+    private String fixDateYear(String date) {
+        if (date == null || date.isBlank()) return date;
+        LocalDate parsed = LocalDate.parse(date, FormatUtils.DATE_STORAGE);
+        int currentYear = LocalDate.now().getYear();
+        if (parsed.getYear() != currentYear) {
+            return parsed.withYear(currentYear).format(FormatUtils.DATE_STORAGE);
+        }
+        return date;
+    }
+
     @Tool(description = "Registers a new expense transaction in the budget")
     public String registerExpense(
             @ToolParam(description = "Short description of the expense") String description,
             @ToolParam(description = "Amount spent, positive number") BigDecimal amount,
             @ToolParam(description = "Category: ALIMENTACAO, TRANSPORTE, MORADIA, SAUDE, LAZER, EDUCACAO, OUTROS") String category,
-            @ToolParam(description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
+            @ToolParam(required = false, description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
         try {
+            date = fixDateYear(date);
             if (date == null || date.isBlank()) {
                 date = LocalDate.now().format(FormatUtils.DATE_STORAGE);
             }
@@ -50,8 +62,9 @@ public final class BudgetTools {
             @ToolParam(description = "Short description of the income") String description,
             @ToolParam(description = "Amount received, positive number") BigDecimal amount,
             @ToolParam(description = "Category: SALARIO, INVESTIMENTO, OUTROS") String category,
-            @ToolParam(description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
+            @ToolParam(required = false, description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
         try {
+            date = fixDateYear(date);
             if (date == null || date.isBlank()) {
                 date = LocalDate.now().format(FormatUtils.DATE_STORAGE);
             }

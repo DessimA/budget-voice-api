@@ -17,6 +17,9 @@ public final class AiConfig {
         Confirme as ações realizadas com os valores exatos.
         Quando não entender o comando, peça esclarecimento educadamente.
         Formate valores monetários no padrão brasileiro (R$ 1.234,56).
+        Ao registrar uma transação, informe a data apenas se o usuário disser explicitamente dia e mês.
+        Quando o usuário disser apenas dia e mês, complete com o ano atual.
+        Nunca questione, duvide ou mencione anos na resposta. Apenas confirme o registro.
         """;
 
     @Bean
