@@ -1,9 +1,11 @@
 package com.budget.api.repository;
 
 import com.budget.api.domain.Transaction;
+import com.budget.api.domain.TransactionCategory;
 import com.budget.api.domain.TransactionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +29,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.type = :type")
     Optional<BigDecimal> sumAmountByType(TransactionType type);
+
+    @Query("SELECT COUNT(t) > 0 FROM Transaction t "
+         + "WHERE t.description = :description AND t.amount = :amount "
+         + "AND t.type = :type AND t.category = :category "
+         + "AND t.transactionDate = :date "
+         + "AND t.createdAt >= :since")
+    boolean existsDuplicate(@Param("description") String description,
+                            @Param("amount") BigDecimal amount,
+                            @Param("type") TransactionType type,
+                            @Param("category") TransactionCategory category,
+                            @Param("date") LocalDate date,
+                            @Param("since") LocalDateTime since);
 
     Page<Transaction> findAllByOrderByTransactionDateDesc(Pageable pageable);
 

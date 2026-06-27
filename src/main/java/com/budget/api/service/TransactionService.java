@@ -6,11 +6,13 @@ import com.budget.api.domain.TransactionType;
 import com.budget.api.dto.MonthlySummaryResponse;
 import com.budget.api.dto.MonthlySummaryResponse.CategorySummary;
 import com.budget.api.dto.TransactionResponse;
+import com.budget.api.exception.BusinessException;
 import com.budget.api.repository.TransactionRepository;
 import com.budget.api.util.FormatUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,6 +40,12 @@ public final class TransactionService {
         TransactionType transactionType = TransactionType.valueOf(type.toUpperCase());
         TransactionCategory transactionCategory = TransactionCategory.valueOf(category.toUpperCase());
         LocalDate transactionDate = LocalDate.parse(date, FormatUtils.DATE_STORAGE);
+
+        LocalDateTime since = LocalDateTime.now().minusMinutes(1);
+        if (repository.existsDuplicate(description, amount, transactionType, transactionCategory,
+                                       transactionDate, since)) {
+            throw new BusinessException("Transação duplicada detectada. Ignorando requisição repetida.");
+        }
 
         Transaction transaction = new Transaction(description, amount, transactionType,
                                                   transactionCategory, transactionDate);
