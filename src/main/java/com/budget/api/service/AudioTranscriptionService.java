@@ -1,9 +1,12 @@
 package com.budget.api.service;
 
+import com.budget.api.exception.AudioProcessingException;
+import java.time.Duration;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,9 +25,13 @@ public final class AudioTranscriptionService {
             @Value("${groq.whisper.model}") String model,
             @Value("${spring.ai.openai.api-key}") String apiKey) {
         this.model = model;
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(10));
+        factory.setReadTimeout(Duration.ofSeconds(60));
         this.restClient = RestClient.builder()
             .baseUrl(Objects.requireNonNull(whisperUrl, "Whisper URL must not be null"))
             .defaultHeader("Authorization", "Bearer " + apiKey)
+            .requestFactory(factory)
             .build();
     }
 
@@ -48,7 +55,7 @@ public final class AudioTranscriptionService {
                 .retrieve()
                 .body(String.class);
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao transcrever áudio: " + e.getMessage(), e);
+            throw new AudioProcessingException("Erro ao transcrever áudio: " + e.getMessage(), e);
         }
     }
 }
