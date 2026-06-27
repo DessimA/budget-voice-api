@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: budget-voice-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/budget_db}
+    username: ${SPRING_DATASOURCE_USERNAME:budget_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:budget_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  ai:
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        options:
+          model: llama-3.3-70b-versatile
+          temperature: 0.3
+
+groq:
+  whisper:
+    url: https://api.groq.com/openai/v1/audio/transcriptions
+    model: whisper-large-v3-turbo
+
+tts:
+  coqui:
+    url: ${TTS_SERVICE_URL:http://localhost:5002}
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.budget: DEBUG
+    org.springframework.ai: INFO

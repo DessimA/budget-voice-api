@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: budget_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - budget_network
+
+  tts:
+    image: ghcr.io/coqui-ai/tts-cpu
+    container_name: budget_tts
+    entrypoint: python3
+    command: >
+      TTS/server/server.py
+      --model_name tts_models/pt/cv/vits
+      --port 5002
+    ports:
+      - "5002:5002"
+    volumes:
+      - tts_models_cache:/root/.local/share/tts
+    networks:
+      - budget_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budget_api
+    ports:
+      - "8080:8080"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      TTS_SERVICE_URL: http://tts:5002
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - budget_network
+
+volumes:
+  postgres_data:
+  tts_models_cache:
+
+networks:
+  budget_network:
+    driver: bridge
