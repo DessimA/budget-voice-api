@@ -103,20 +103,26 @@ public final class BudgetTools {
 
     @Tool(description = "Lists transactions from the last N days. Default 30 if not specified by user")
     public String listRecentTransactions(
-            @ToolParam(description = "Number of days to look back") int days) {
+            @ToolParam(description = "Number of days to look back") String days) {
         try {
-            if (days <= 0) {
-                days = 30;
+            int daysInt;
+            try {
+                daysInt = Integer.parseInt(days.trim());
+            } catch (Exception e) {
+                daysInt = 30;
             }
-            LocalDate startDate = LocalDate.now().minusDays(days);
+            if (daysInt <= 0) {
+                daysInt = 30;
+            }
+            LocalDate startDate = LocalDate.now().minusDays(daysInt);
             List<TransactionResponse> transactions = transactionService.getTransactionsByPeriod(startDate, LocalDate.now());
 
             if (transactions.isEmpty()) {
-                return "Nenhuma transação encontrada nos últimos " + days + " dias.";
+                return "Nenhuma transação encontrada nos últimos " + daysInt + " dias.";
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append("Transações dos últimos ").append(days).append(" dias:\n");
+            sb.append("Transações dos últimos ").append(daysInt).append(" dias:\n");
             int limit = Math.min(transactions.size(), 20);
             for (int i = 0; i < limit; i++) {
                 TransactionResponse t = transactions.get(i);
@@ -137,24 +143,36 @@ public final class BudgetTools {
         }
     }
 
-    @Tool(description = "Returns financial summary for a specific month and year. Use current if not specified")
+    @Tool(description = "Returns financial summary for a specific month and year: total income, total expenses, balance, and breakdown by category with amounts and transaction counts. Use current month if not specified.")
     public String getMonthlySummary(
-            @ToolParam(description = "Month number 1-12") int month,
-            @ToolParam(description = "Full year like 2025") int year) {
+            @ToolParam(description = "Month number 1-12") String month,
+            @ToolParam(description = "Full year like 2025") String year) {
         try {
-            if (month <= 0 || month > 12) {
+            int monthInt;
+            int yearInt;
+            try {
+                monthInt = Integer.parseInt(month.trim());
+            } catch (Exception e) {
+                monthInt = 0;
+            }
+            try {
+                yearInt = Integer.parseInt(year.trim());
+            } catch (Exception e) {
+                yearInt = 0;
+            }
+            if (monthInt <= 0 || monthInt > 12) {
                 YearMonth current = YearMonth.now();
-                month = current.getMonthValue();
-                year = current.getYear();
+                monthInt = current.getMonthValue();
+                yearInt = current.getYear();
             }
-            if (year <= 0) {
-                year = YearMonth.now().getYear();
+            if (yearInt <= 0) {
+                yearInt = YearMonth.now().getYear();
             }
-            var summary = transactionService.getMonthlySummary(month, year);
+            var summary = transactionService.getMonthlySummary(monthInt, yearInt);
 
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("Resumo financeiro de %s/%d:%n",
-                String.format("%02d", month), year));
+                String.format("%02d", monthInt), yearInt));
             sb.append(String.format("Total de entradas: %s%n",
                 FormatUtils.brazilianCurrency().format(summary.totalIncome())));
             sb.append(String.format("Total de saídas: %s%n",
@@ -174,7 +192,7 @@ public final class BudgetTools {
         }
     }
 
-    @Tool(description = "Returns spending summary grouped by category")
+    @Tool(description = "Returns net balance (income minus expenses) grouped by category")
     public String getBalanceByCategory() {
         try {
             Map<String, BigDecimal> byCategory = transactionService.getBalanceByCategory();
