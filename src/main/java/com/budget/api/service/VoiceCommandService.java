@@ -1,5 +1,6 @@
 package com.budget.api.service;
 
+import java.util.Objects;
 import com.budget.api.tools.BudgetTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -16,10 +17,11 @@ public final class VoiceCommandService {
     }
 
     public String processCommand(String transcribedText) {
-        return chatClient.prompt()
+        String content = chatClient.prompt()
             .user(transcribedText)
             .tools(budgetTools)
             .call()
             .content();
+        return Objects.requireNonNullElse(content, "Não foi possível processar o comando. Tente novamente.");
     }
 }
