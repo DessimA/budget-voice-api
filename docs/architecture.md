@@ -6,7 +6,8 @@
 graph TB
     subgraph Docker["Docker Compose - Custo Zero"]
         subgraph API["budget-voice-api (Spring Boot)"]
-            CTL[VoiceCommandController]
+            CTL_VOICE[VoiceCommandController]
+            CTL_TX[TransactionController]
             ATS[AudioTranscriptionService\nRestClient -> Groq Whisper]
             VCS[VoiceCommandService\nSpring AI ChatClient]
             TTS_SVC[TextToSpeechService\nRestClient -> Coqui]
@@ -23,9 +24,10 @@ graph TB
         WHISPER[Whisper Large v3 Turbo\nTranscrição PT-BR]
     end
 
-    CTL --> ATS
-    CTL --> VCS
-    CTL --> TTS_SVC
+    CTL_VOICE --> ATS
+    CTL_VOICE --> VCS
+    CTL_VOICE --> TTS_SVC
+    CTL_TX --> TS
     VCS --> BT
     BT --> VS
     BT --> TS
@@ -37,7 +39,9 @@ graph TB
 
 ## Camadas
 
-1. **Controller**: Recebe requisições HTTP, orquestra services e retorna respostas.
+1. **Controller**: Dois controllers separados por responsabilidade.
+   `VoiceCommandController` gerencia `/api/voice/**` (áudio e IA).
+   `TransactionController` gerencia `/api/transactions/**` (CRUD).
 2. **Service**: Lógica de negócio e integração com IA.
 3. **Tools**: Ferramentas chamadas pelo LLM via Tool Calling.
 4. **Domain**: Entidades JPA e enums.
@@ -61,7 +65,7 @@ por `RestClient` direto por duas razões:
 
 - **Custo zero**: Tier gratuito permanente sem cartão de crédito.
 - **Compatibilidade OpenAI**: O Groq é compatível com a API da OpenAI,
-  permitindo usar `spring-ai-openai-spring-boot-starter` apenas
+  permitindo usar `spring-ai-starter-model-openai` apenas
   alterando `base-url` e `api-key` no `application.yml`.
 - **Tool Calling**: Suporte completo a function calling, essencial
   para o fluxo de comandos de voz.

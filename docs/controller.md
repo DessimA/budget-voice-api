@@ -1,6 +1,8 @@
 # Controller
 
-## Endpoints
+## VoiceCommandController
+
+Gerencia os endpoints de comandos de voz em `/api/voice/**`.
 
 ### POST `/api/voice/command`
 
@@ -37,6 +39,10 @@ Verifica se a API está rodando.
 ```bash
 curl http://localhost:8080/api/voice/health
 ```
+
+## TransactionController
+
+Gerencia os endpoints de transações em `/api/transactions/**`.
 
 ### GET `/api/transactions`
 
