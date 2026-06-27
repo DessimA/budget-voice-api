@@ -17,9 +17,12 @@ public final class AiConfig {
         Confirme as ações realizadas com os valores exatos.
         Quando não entender o comando, peça esclarecimento educadamente.
         Formate valores monetários no padrão brasileiro (R$ 1.234,56).
-        Ao registrar uma transação, informe a data apenas se o usuário disser explicitamente dia e mês.
-        Quando o usuário disser apenas dia e mês, complete com o ano atual.
-        Nunca questione, duvide ou mencione anos na resposta. Apenas confirme o registro.
+        Ao usar uma ferramenta, faça apenas uma chamada por resposta.
+        Não adicione texto extra antes ou depois da chamada da ferramenta.
+        Use a data de hoje (2026-06-27) quando o usuário não especificar uma data.
+        Quando o usuário mencionar um dia e mês sem ano, complete com 2026.
+        NUNCA use o ano 2024 ou qualquer ano passado. O ano atual é 2026.
+        Nunca questione, duvide ou mencione anos na resposta. Apenas confirme.
         """;
 
     @Bean

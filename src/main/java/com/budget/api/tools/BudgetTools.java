@@ -6,7 +6,6 @@ import com.budget.api.util.FormatUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import org.springframework.ai.tool.annotation.Tool;
@@ -32,10 +31,17 @@ public final class BudgetTools {
         return date;
     }
 
+    private BigDecimal parseAmount(String amount) {
+        if (amount == null || amount.isBlank()) {
+            throw new IllegalArgumentException("Valor não informado");
+        }
+        return new BigDecimal(amount.trim().replace(",", "."));
+    }
+
     @Tool(description = "Registers a new expense transaction in the budget")
     public String registerExpense(
             @ToolParam(description = "Short description of the expense") String description,
-            @ToolParam(description = "Amount spent, positive number") BigDecimal amount,
+            @ToolParam(description = "Amount spent, positive number") String amount,
             @ToolParam(description = "Category: ALIMENTACAO, TRANSPORTE, MORADIA, SAUDE, LAZER, EDUCACAO, OUTROS") String category,
             @ToolParam(required = false, description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
         try {
@@ -43,8 +49,9 @@ public final class BudgetTools {
             if (date == null || date.isBlank()) {
                 date = LocalDate.now().format(FormatUtils.DATE_STORAGE);
             }
+            BigDecimal parsedAmount = parseAmount(amount);
             TransactionResponse response = transactionService.createTransaction(
-                description, amount, "EXPENSE", category, date);
+                description, parsedAmount, "EXPENSE", category, date);
             return String.format("Despesa registrada com sucesso! %s - %s: %s em %s",
                 response.description(),
                 response.categoryDescription(),
@@ -60,7 +67,7 @@ public final class BudgetTools {
     @Tool(description = "Registers a new income transaction in the budget")
     public String registerIncome(
             @ToolParam(description = "Short description of the income") String description,
-            @ToolParam(description = "Amount received, positive number") BigDecimal amount,
+            @ToolParam(description = "Amount received, positive number") String amount,
             @ToolParam(description = "Category: SALARIO, INVESTIMENTO, OUTROS") String category,
             @ToolParam(required = false, description = "Date in yyyy-MM-dd format, use today if not specified") String date) {
         try {
@@ -68,8 +75,9 @@ public final class BudgetTools {
             if (date == null || date.isBlank()) {
                 date = LocalDate.now().format(FormatUtils.DATE_STORAGE);
             }
+            BigDecimal parsedAmount = parseAmount(amount);
             TransactionResponse response = transactionService.createTransaction(
-                description, amount, "INCOME", category, date);
+                description, parsedAmount, "INCOME", category, date);
             return String.format("Entrada registrada com sucesso! %s - %s: %s em %s",
                 response.description(),
                 response.categoryDescription(),
