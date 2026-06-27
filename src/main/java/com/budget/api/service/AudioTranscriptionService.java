@@ -12,6 +12,8 @@ import org.springframework.web.client.RestClient;
 @Service
 public final class AudioTranscriptionService {
 
+    private static final MediaType MULTIPART_FORM_DATA = MediaType.MULTIPART_FORM_DATA;
+
     private final RestClient restClient;
     private final String model;
 
@@ -21,7 +23,7 @@ public final class AudioTranscriptionService {
             @Value("${spring.ai.openai.api-key}") String apiKey) {
         this.model = model;
         this.restClient = RestClient.builder()
-            .baseUrl(whisperUrl)
+            .baseUrl(Objects.requireNonNull(whisperUrl, "Whisper URL must not be null"))
             .defaultHeader("Authorization", "Bearer " + apiKey)
             .build();
     }
@@ -41,7 +43,7 @@ public final class AudioTranscriptionService {
             body.add("response_format", "text");
 
             return restClient.post()
-                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .contentType(MULTIPART_FORM_DATA)
                 .body(body)
                 .retrieve()
                 .body(String.class);

@@ -1,5 +1,6 @@
 package com.budget.api.service;
 
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -12,7 +13,7 @@ public final class TextToSpeechService {
 
     public TextToSpeechService(@Value("${tts.coqui.url}") String ttsUrl) {
         this.restClient = RestClient.builder()
-            .baseUrl(ttsUrl)
+            .baseUrl(Objects.requireNonNull(ttsUrl, "TTS URL must not be null"))
             .build();
     }
 
