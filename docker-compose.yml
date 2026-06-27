@@ -30,6 +30,12 @@ services:
       - "5002:5002"
     volumes:
       - tts_models_cache:/root/.local/share/tts
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5002/api/tts?text=ok')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     networks:
       - budget_network
 
@@ -49,6 +55,8 @@ services:
       TTS_SERVICE_URL: http://tts:5002
     depends_on:
       postgres:
+        condition: service_healthy
+      tts:
         condition: service_healthy
     networks:
       - budget_network
