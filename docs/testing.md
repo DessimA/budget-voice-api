@@ -28,4 +28,4 @@
 Testes unitários são rápidos e não exigem infraestrutura (banco, Docker).
 Testes `@WebMvcTest` validam a camada web sem iniciar o contexto completo
 do Spring. A combinação cobre a maior parte dos cenários de erro sem
-depender de serviços externos (Groq, Whisper, Coqui).
+depender de serviços externos (Groq, Whisper, gTTS).

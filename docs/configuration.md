@@ -35,3 +35,25 @@ só é executado uma vez. Isso garante que:
 O limite de 25MB para upload de arquivos corresponde ao limite máximo
 suportado pela API Whisper do Groq. O `max-request-size` de 26MB é
 ligeiramente superior para acomodar overhead do multipart form.
+
+## Modelo LLM
+
+O modelo configurado em `application.yml` é `meta-llama/llama-4-scout-17b-16e-instruct`
+(Llama 4 Scout 17B). Este modelo é multimodal e mais eficiente que o Llama 3.3 70B,
+com suporte completo a Tool Calling na API do Groq.
+
+Para mudar o modelo, altere apenas `spring.ai.openai.chat.options.model` no
+`application.yml`. Modelos compatíveis com Tool Calling disponíveis no Groq:
+- `meta-llama/llama-4-scout-17b-16e-instruct` (padrão atual)
+- `llama-3.3-70b-versatile` (mais preciso, mais lento)
+- `llama-3.1-8b-instant` (mais rápido, menor qualidade)
+
+## CORS
+
+A configuração CORS em `WebConfig` permite origens `localhost` e `127.0.0.1`
+em qualquer porta. Isso é adequado para desenvolvimento local.
+
+`allowCredentials(true)` é necessário se o frontend enviar cookies ou
+headers de autenticação. Para produção, substitua `allowedOriginPatterns`
+por origens específicas e considere remover `allowCredentials` se não
+usar autenticação baseada em cookies.

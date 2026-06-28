@@ -14,8 +14,8 @@ RuntimeException
 - `BusinessException`: validações de campos, valores inválidos, tipos
   inválidos, datas inválidas. Retorna HTTP 422.
 - `AudioProcessingException`: falhas na transcrição de áudio (Groq Whisper)
-  ou síntese de voz (Coqui TTS). Retorna HTTP 422.
-- `ExternalServiceException`: falhas de comunicação com Groq API, Coqui TTS,
+  ou síntese de voz (gTTS). Retorna HTTP 422.
+- `ExternalServiceException`: falhas de comunicação com Groq API, gTTS,
   ou qualquer serviço externo. Retorna HTTP 503.
 
 ## Por que não usar exceções genéricas

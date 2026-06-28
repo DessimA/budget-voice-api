@@ -10,17 +10,17 @@ graph TB
             CTL_TX[TransactionController]
             ATS[AudioTranscriptionService\nRestClient -> Groq Whisper]
             VCS[VoiceCommandService\nSpring AI ChatClient]
-            TTS_SVC[TextToSpeechService\nRestClient -> Coqui]
+            TTS_SVC[TextToSpeechService\nRestClient -> gTTS]
             VS[ValidationService]
             TS[TransactionService]
             BT[BudgetTools]
         end
         PG[(PostgreSQL 16)]
-        COQUI[Coqui TTS Container\ntts_models/pt/cv/vits\nPorta 5002]
+        COQUI[gTTS Service (Flask + Google TTS)\nPorta 5002]
     end
 
     subgraph Groq["Groq Cloud - Free Tier"]
-        LLM[Llama 3.3 70B\nTool Calling]
+        LLM[Llama 4 Scout 17B\nTool Calling]
         WHISPER[Whisper Large v3 Turbo\nTranscrição PT-BR]
     end
 
@@ -71,12 +71,15 @@ por `RestClient` direto por duas razões:
   para o fluxo de comandos de voz.
 - **Whisper nativo**: Transcrição de áudio com o mesmo provedor.
 
-### Por que Coqui TTS em Docker separado?
+### Por que gTTS em Docker separado?
 
-- **Isolamento**: O Coqui TTS roda em container independente, não
-  afetando a inicialização da API.
-- **Sem GPU**: O modelo CPU do Coqui funciona sem placa de vídeo.
-- **Português**: Modelo `tts_models/pt/cv/vits` tem suporte nativo
-  a português.
-- **Cache de modelo**: O volume Docker `tts_models_cache` evita
-  re-download do modelo a cada reinício.
+- **Isolamento**: O serviço TTS roda em container independente (Flask + gTTS),
+  não afetando a inicialização da API.
+- **Sem GPU**: Nenhum modelo local é necessário. A síntese usa a API do Google
+  Translate (gTTS), que é gratuita e não exige infraestrutura local.
+- **Português**: gTTS com `lang='pt-BR'` tem suporte nativo a português brasileiro.
+- **Sem cache de modelo**: Diferente de modelos locais, não há download de pesos.
+  O container inicia em segundos.
+- **Trade-off**: Requer conexão com internet para síntese. Em ambiente offline,
+  o endpoint de texto (`/api/voice/command`) funciona normalmente; apenas o
+  endpoint de áudio (`/api/voice/command/audio`) fica indisponível.

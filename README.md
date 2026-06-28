@@ -3,8 +3,8 @@
 API REST que aceita comandos de voz em portugues para gerenciar
 financas pessoais. Usa Spring AI com Tool Calling para entender a
 intencao do usuario e executar operacoes reais no banco de dados.
-Stack 100% gratuita: Groq (LLM + transcricao) e Coqui TTS (sintese
-de voz open source em Docker).
+Stack 100% gratuita: Groq (LLM + transcricao) e gTTS (sintese
+de voz via Google TTS em Docker).
 
 ## Pre-requisitos
 
@@ -25,10 +25,9 @@ docker compose up --build
 ```
 
 A API estara disponivel em `http://localhost:8080` assim que o
-PostgreSQL e o Spring Boot subirem. O Coqui TTS sobe em paralelo e
-pode levar 2 a 5 minutos no primeiro uso para baixar o modelo de voz
-em portugues. Nas execucoes seguintes o modelo ja esta em cache no
-volume Docker e a inicializacao e quase imediata.
+PostgreSQL e o Spring Boot subirem. O servico gTTS (Flask) sobe rapidamente
+(segundos) pois nao ha download de modelos. O endpoint `/api/voice/command/audio`
+requer conexao com internet para sintetizar voz via Google TTS.
 
 ## Como Testar
 
@@ -48,7 +47,7 @@ curl http://localhost:8080/api/transactions/balance
 # Resumo do mes
 curl http://localhost:8080/api/transactions/summary/2025/6
 
-# Resposta em audio (apos Coqui inicializar)
+# Resposta em audio
 curl -X POST -F "audio=@meuaudio.mp3" http://localhost:8080/api/voice/command/audio --output resposta.wav
 ```
 
@@ -91,17 +90,17 @@ curl -X POST -F "audio=@meuaudio.mp3" http://localhost:8080/api/voice/command/au
 | Spring AI | 1.0.0 | Integracao Groq LLM |
 | PostgreSQL | 16-alpine | Banco de dados |
 | Flyway | 10.x | Migracoes de banco |
-| Groq Llama 3.3 70B | llama-3.3-70b-versatile | LLM + Tool Calling |
+| Groq Llama 4 Scout | meta-llama/llama-4-scout-17b-16e-instruct | LLM + Tool Calling |
 | Groq Whisper | whisper-large-v3-turbo | Transcricao |
-| Coqui TTS | ghcr.io/coqui-ai/tts-cpu | Sintese de voz |
+| gTTS + Flask | 2.x | Sintese de voz (Google TTS via Docker) |
 
 ## Custo de Operacao
 
 | Recurso | Provedor | Custo |
 |---|---|---|
-| LLM com Tool Calling | Groq (Llama 3.3 70B) | Gratuito |
+| LLM com Tool Calling | Groq (Llama 4 Scout) | Gratuito |
 | Transcricao de audio | Groq Whisper | Gratuito |
-| Sintese de voz | Coqui TTS (Docker) | Gratuito |
+| Sintese de voz | gTTS + Flask (Docker) | Gratuito |
 | Banco de dados | PostgreSQL (Docker) | Gratuito |
 
 ## Melhorias Implementadas
@@ -117,10 +116,10 @@ curl -X POST -F "audio=@meuaudio.mp3" http://localhost:8080/api/voice/command/au
 9. Validacao de upload de audio (tamanho, formato, extensao)
 10. Queries JPQL agregadas substituindo processamento em memoria
 11. Paginacao em `GET /api/transactions`
-12. Timeout configurado nos `RestClient` (Groq Whisper e Coqui TTS)
+12. Timeout configurado nos `RestClient` (Groq Whisper e gTTS)
 13. `FormatUtils` centralizando formatadores de data e moeda
 14. Flyway com `ddl-auto: validate` e migration versionada
-15. Healthcheck do Coqui TTS no Docker Compose
+15. Healthcheck do gTTS no Docker Compose
 16. `GlobalExceptionHandler` substituindo try/catch nos controllers
 17. Testes unitarios e de integracao (`ValidationService`, `TransactionService`, `VoiceCommandController`)
 
@@ -132,8 +131,8 @@ curl -X POST -F "audio=@meuaudio.mp3" http://localhost:8080/api/voice/command/au
   de negocio mantem o codigo testavel e de facil manutencao.
 - O RestClient do Spring e suficiente para integracoes HTTP diretas
   sem depender de auto-configuration para cada provedor.
-- Docker Compose com volumes de cache acelera significativamente
-  inicializacoes de modelos de ML como o Coqui TTS.
+- Docker Compose e suficiente para orquestrar servicos auxiliares
+  como banco de dados e TTS.
 - Validacoes desacopladas em um service proprio (SRP) evitam que
   regras de negocio fiquem espalhadas pela aplicacao.
 - Excecoes especificas permitem tratamento HTTP diferenciado sem

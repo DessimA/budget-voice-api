@@ -54,6 +54,6 @@ sequenceDiagram
 
 ## Por que descrições em inglês?
 
-O LLM Llama 3.3 70B foi treinado predominantemente com dados em
+O LLM Llama 4 Scout 17B foi treinado predominantemente com dados em
 inglês e processa descrições técnicas com mais precisão nesse idioma.
 As respostas ao usuário são sempre em português.

@@ -15,8 +15,8 @@ docker compose up --build
 
 A ordem de inicialização é:
 1. PostgreSQL (mais rápido, healthcheck em segundos)
-2. API Spring Boot (assim que PostgreSQL estiver pronto)
-3. Coqui TTS (em paralelo, leva 2-5 min no primeiro uso)
+2. gTTS (Flask, segundos)
+3. API Spring Boot (assim que PostgreSQL e gTTS estiverem prontos)
 
 ## Testando a API
 
@@ -62,7 +62,6 @@ curl -X POST -F "audio=@meuaudio.mp3" http://localhost:8080/api/voice/command/au
 
 ## Observações
 
-- O endpoint de áudio só funciona após o Coqui TTS terminar de
-  baixar o modelo (2-5 minutos no primeiro uso).
-- O volume `tts_models_cache` acelera reinicializações seguintes.
+- O endpoint de áudio requer conexão com internet para sintetizar
+  voz via Google TTS.
 - A API responde em texto imediatamente, independentemente do TTS.
