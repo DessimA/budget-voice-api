@@ -654,7 +654,7 @@ async function renderSummarySection() {
     const month = monthSelect.value;
     const year = yearSelect.value;
     loadBtn.disabled = true;
-    loadBtn.textContent = 'Loading...';
+    loadBtn.textContent = 'Carregando...';
     container.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
 
     try {
@@ -665,7 +665,7 @@ async function renderSummarySection() {
         container.innerHTML = `<div class="alert alert-error">${escapeHtml(data.error || `HTTP ${res.status}`)}</div>`;
         container.appendChild(createCodeBlock(data, true, false));
         loadBtn.disabled = false;
-        loadBtn.textContent = 'Load Summary';
+        loadBtn.textContent = 'Carregar';
         return;
       }
 
@@ -700,32 +700,24 @@ async function renderSummarySection() {
       container.appendChild(cardsDiv);
 
       if (summary.byCategory && summary.byCategory.length > 0) {
-        const catHeader = document.createElement('h3');
-        catHeader.className = 'card-title';
-        catHeader.style.marginTop = '16px';
-        catHeader.style.marginBottom = '8px';
-        catHeader.textContent = 'Por Categoria';
-        container.appendChild(catHeader);
+        const expenseCats = summary.byCategory.filter(c => c.totalAmount < 0);
+        const incomeCats = summary.byCategory.filter(c => c.totalAmount >= 0);
 
-        const table = document.createElement('table');
-        table.className = 'table';
-        table.innerHTML = `
-          <thead><tr>
-            <th>Categoria</th>
-            <th>Total</th>
-            <th>Transações</th>
-          </tr></thead>`;
-        const tbody = document.createElement('tbody');
-        summary.byCategory.forEach(cat => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${escapeHtml(cat.categoryDescription || cat.category)}</td>
-            <td style="font-family:var(--font-mono);color:var(--color-accent-${cat.totalAmount >= 0 ? 'green' : 'red'});">${formatBRL(cat.totalAmount)}</td>
-            <td>${cat.transactionCount}</td>`;
-          tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        container.appendChild(table);
+        if (expenseCats.length > 0) {
+          const chartHeader = document.createElement('h3');
+          chartHeader.className = 'chart-section-title';
+          chartHeader.textContent = 'Despesas por Categoria';
+          container.appendChild(chartHeader);
+          container.appendChild(createBarChart(expenseCats, 'red'));
+        }
+
+        if (incomeCats.length > 0) {
+          const chartHeader = document.createElement('h3');
+          chartHeader.className = 'chart-section-title';
+          chartHeader.textContent = 'Receitas por Categoria';
+          container.appendChild(chartHeader);
+          container.appendChild(createBarChart(incomeCats, 'green'));
+        }
       } else {
         const emptyEl = document.createElement('p');
         emptyEl.className = 'empty-state';
@@ -739,7 +731,49 @@ async function renderSummarySection() {
     }
 
     loadBtn.disabled = false;
-    loadBtn.textContent = 'Load Summary';
+    loadBtn.textContent = 'Carregar';
+  }
+
+  function createBarChart(categories, type) {
+    const absAmounts = categories.map(c => ({ ...c, absAmount: Math.abs(c.totalAmount) }));
+    const maxAmount = Math.max(...absAmounts.map(c => c.absAmount), 1);
+
+    const container = document.createElement('div');
+    container.className = 'chart-bars';
+
+    absAmounts.forEach(cat => {
+      const pct = (cat.absAmount / maxAmount) * 100;
+      const barRow = document.createElement('div');
+      barRow.className = 'chart-row';
+
+      const label = document.createElement('div');
+      label.className = 'chart-label';
+      label.textContent = cat.categoryDescription || cat.category;
+
+      const barTrack = document.createElement('div');
+      barTrack.className = 'chart-track';
+
+      const bar = document.createElement('div');
+      bar.className = `chart-bar chart-bar-${type}`;
+      bar.style.width = `${Math.max(pct, 4)}%`;
+
+      const value = document.createElement('span');
+      value.className = 'chart-value';
+      value.textContent = formatBRL(cat.absAmount);
+
+      const count = document.createElement('span');
+      count.className = 'chart-count';
+      count.textContent = `${cat.transactionCount} ${cat.transactionCount === 1 ? 'transação' : 'transações'}`;
+
+      barTrack.appendChild(bar);
+      barRow.appendChild(label);
+      barRow.appendChild(barTrack);
+      barRow.appendChild(value);
+      barRow.appendChild(count);
+      container.appendChild(barRow);
+    });
+
+    return container;
   }
 
   loadBtn.onclick = loadSummary;
