@@ -21,7 +21,7 @@ erDiagram
 ```mermaid
 graph LR
     subgraph Domain["Domínio"]
-        T[Transaction<br/>@Entity JPA]
+        T["Transaction<br/>@Entity JPA"]
         TT[TransactionType<br/><<enum>>]
         TC[TransactionCategory<br/><<enum>>]
     end

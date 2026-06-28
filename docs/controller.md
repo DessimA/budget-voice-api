@@ -14,7 +14,7 @@ graph LR
         TC[TransactionController]
         TC_GET[GET /]
         TC_BAL[GET /balance]
-        TC_SUM[GET /summary/{year}/{month}]
+        TC_SUM["GET /summary/{year}/{month}"]
     end
 
     VC_POST1 --> VC

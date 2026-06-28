@@ -60,7 +60,7 @@ graph LR
     end
     subgraph Service["Serviços"]
         Svc[Services<br/>Regras + IA]
-        Tools[BudgetTools<br/>@Tool]
+        Tools["BudgetTools<br/>@Tool"]
     end
     subgraph Persistence["Persistência"]
         Repo[Repositories<br/>Spring Data JPA]

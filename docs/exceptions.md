@@ -42,13 +42,13 @@ sequenceDiagram
     C->>GHE: handleBusinessException
     GHE-->>U: 422 {"error": mensagem}
 
-    Note over C,S: --- ou ---
+    Note over C,S: ou
 
     S-->>C: AudioProcessingException
     C->>GHE: handleAudioProcessing
     GHE-->>U: 422 {"error": mensagem}
 
-    Note over C,S: --- ou ---
+    Note over C,S: ou
 
     S-->>C: ExternalServiceException
     C->>GHE: handleExternalService
