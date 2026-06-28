@@ -212,31 +212,67 @@ function initVoiceSection() {
   const micBtn = document.getElementById('voice-mic-btn');
   const result = document.getElementById('voice-result');
   let selectedFile = null;
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let isRecording = false;
+  let recordingTimer = null;
+  let recordingSeconds = 0;
 
   function getResponseType() {
     const selected = document.querySelector('input[name="voice-response-type"]:checked');
     return selected ? selected.value : 'text';
   }
 
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
   function updatePreview(file) {
     selectedFile = file;
     if (file) {
       uploadZone.classList.add('has-file');
+      const ext = file.name.split('.').pop().toUpperCase();
       preview.innerHTML = `
         <div class="upload-preview">
           <span>🎵</span>
           <span class="upload-name">${escapeHtml(file.name)}</span>
-          <span class="upload-size">(${(file.size / 1024).toFixed(1)} KB)</span>
-          <span class="upload-remove" style="cursor:pointer;color:var(--color-accent-red);">✕</span>
+          <span class="upload-size">${formatFileSize(file.size)}</span>
+          <span class="audio-duration" id="audio-duration-label"></span>
+          <span class="upload-remove" style="cursor:pointer;color:var(--color-accent-red);" title="Remover arquivo">✕</span>
         </div>`;
       preview.querySelector('.upload-remove').onclick = (e) => {
         e.stopPropagation();
         clearFile();
       };
+      tryReadAudioDuration(file);
     } else {
       uploadZone.classList.remove('has-file');
-      preview.innerHTML = `<div class="upload-placeholder"><p>Click or drag an audio file here (MP3, WAV, OGG, M4A)</p></div>`;
+      preview.innerHTML = `
+        <div class="upload-placeholder">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
+               stroke="var(--color-text-muted)" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <p>Clique ou arraste um arquivo de áudio (MP3, WAV, OGG, M4A)</p>
+        </div>`;
     }
+  }
+
+  function tryReadAudioDuration(file) {
+    const url = URL.createObjectURL(file);
+    const audio = new Audio(url);
+    audio.addEventListener('loadedmetadata', () => {
+      const mins = Math.floor(audio.duration / 60);
+      const secs = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+      const label = document.getElementById('audio-duration-label');
+      if (label) label.textContent = `${mins}:${secs}`;
+      URL.revokeObjectURL(url);
+    });
+    audio.addEventListener('error', () => URL.revokeObjectURL(url));
   }
 
   function clearFile() {
@@ -244,15 +280,53 @@ function initVoiceSection() {
     updatePreview(null);
   }
 
+  function startRecordingTimer() {
+    recordingSeconds = 0;
+    micBtn.classList.add('btn-mic-recording');
+    recordingTimer = setInterval(() => {
+      recordingSeconds++;
+      const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+      const secs = (recordingSeconds % 60).toString().padStart(2, '0');
+      micBtn.innerHTML = `
+        <span class="recording-dot"></span>
+        ${mins}:${secs}
+      `;
+    }, 1000);
+  }
+
+  function stopRecordingTimer() {
+    if (recordingTimer) {
+      clearInterval(recordingTimer);
+      recordingTimer = null;
+    }
+    micBtn.classList.remove('btn-mic-recording');
+    micBtn.textContent = '🎤 Gravar';
+  }
+
+  function showAutoRefreshHint() {
+    const currentHash = window.location.hash;
+    if (currentHash === '#transactions') {
+      setTimeout(() => {
+        renderBalanceSection();
+        renderTransactionsSection(0);
+      }, 800);
+    }
+  }
+
   uploadZone.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('drag-over');
     if (e.dataTransfer.files[0]) updatePreview(e.dataTransfer.files[0]);
   });
-  fileInput.addEventListener('change', () => { if (fileInput.files[0]) updatePreview(fileInput.files[0]); });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) updatePreview(fileInput.files[0]);
+  });
 
   sendBtn.addEventListener('click', async () => {
     if (!selectedFile) {
@@ -261,14 +335,25 @@ function initVoiceSection() {
     }
     const responseType = getResponseType();
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Enviando...';
-    result.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+    sendBtn.textContent = 'Processando...';
+    result.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:20px;">
+        <div class="spinner"></div>
+        <span style="color:var(--color-text-secondary);font-size:14px;">
+          Transcrevendo e processando comando...
+        </span>
+      </div>`;
 
     try {
       const formData = new FormData();
       formData.append('audio', selectedFile);
-      const endpoint = responseType === 'audio' ? '/api/voice/command/audio' : '/api/voice/command';
-      const res = await fetch(getBaseUrl().replace(/\/+$/, '') + endpoint, { method: 'POST', body: formData });
+      const endpoint = responseType === 'audio'
+        ? '/api/voice/command/audio'
+        : '/api/voice/command';
+      const res = await fetch(
+        getBaseUrl().replace(/\/+$/, '') + endpoint,
+        { method: 'POST', body: formData }
+      );
 
       if (responseType === 'audio') {
         if (!res.ok) {
@@ -277,71 +362,94 @@ function initVoiceSection() {
           if (contentType.includes('json')) {
             errData = await res.json().catch(() => ({ error: res.statusText }));
           } else {
-            const text = await res.text().catch(() => res.statusText);
-            errData = { error: text };
+            errData = { error: await res.text().catch(() => res.statusText) };
           }
           result.innerHTML = '';
           const alert = document.createElement('div');
           alert.className = 'alert alert-error';
-          alert.textContent = errData.error || `HTTP ${res.status} ${res.statusText}`;
+          alert.textContent = errData.error || `Erro HTTP ${res.status}`;
           result.appendChild(alert);
-          result.appendChild(createCodeBlock(errData, true, false));
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Enviar';
-          return;
+          if (res.status === 503) {
+            const hint = document.createElement('p');
+            hint.className = 'small text-muted';
+            hint.style.marginTop = '8px';
+            hint.textContent = 'O serviço de síntese de voz pode estar inicializando. Tente em alguns instantes.';
+            result.appendChild(hint);
+          }
+        } else {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          result.innerHTML = '';
+          const audioEl = document.createElement('audio');
+          audioEl.className = 'audio-player';
+          audioEl.controls = true;
+          audioEl.src = audioUrl;
+          audioEl.autoplay = true;
+          result.appendChild(audioEl);
+          const info = document.createElement('p');
+          info.className = 'small text-muted';
+          info.style.marginTop = '8px';
+          info.textContent = `Resposta em áudio (${formatFileSize(blob.size)})`;
+          result.appendChild(info);
+          createToast('Resposta em áudio recebida', 'success');
+          showAutoRefreshHint();
         }
-
-        const blob = await res.blob();
-        const audioUrl = URL.createObjectURL(blob);
-        result.innerHTML = '';
-
-        const audioEl = document.createElement('audio');
-        audioEl.className = 'audio-player';
-        audioEl.controls = true;
-        audioEl.src = audioUrl;
-        result.appendChild(audioEl);
-
-        const info = document.createElement('p');
-        info.className = 'small text-muted';
-        info.style.marginTop = '8px';
-        info.textContent = `Resposta em áudio (${(blob.size / 1024).toFixed(1)} KB)`;
-        result.appendChild(info);
-
-        createToast('Resposta em áudio recebida', 'success');
       } else {
         const data = await res.json();
         result.innerHTML = '';
         const statusInfo = statusLabel(res.status);
         const badge = createBadge(statusInfo.text, statusInfo.type);
+
         const resultPanel = document.createElement('div');
         resultPanel.className = 'result-panel';
         resultPanel.appendChild(badge);
+
         if (data.transcribedText) {
           const tLabel = document.createElement('h3');
           tLabel.textContent = 'Transcrição';
+          tLabel.style.marginTop = '12px';
           const tText = document.createElement('p');
           tText.className = 'result-text';
+          tText.style.color = 'var(--color-text-secondary)';
           tText.textContent = data.transcribedText;
           resultPanel.appendChild(tLabel);
           resultPanel.appendChild(tText);
         }
+
         if (data.aiResponse) {
           const rLabel = document.createElement('h3');
-          rLabel.textContent = 'Resposta';
+          rLabel.textContent = 'Resposta da IA';
+          rLabel.style.marginTop = '12px';
           const rText = document.createElement('p');
           rText.className = 'result-text';
           rText.textContent = data.aiResponse;
           resultPanel.appendChild(rLabel);
           resultPanel.appendChild(rText);
         }
+
+        if (data.error) {
+          const errDiv = document.createElement('div');
+          errDiv.className = 'alert alert-error';
+          errDiv.style.marginTop = '12px';
+          errDiv.textContent = data.error;
+          resultPanel.appendChild(errDiv);
+        }
+
         result.appendChild(resultPanel);
         result.appendChild(createCodeBlock(data, true, false));
-        createToast(data.status === 'success' ? 'Comando processado' : 'Comando processado com ressalvas', 'success');
+
+        const isSuccess = res.ok && !data.error;
+        createToast(
+          isSuccess ? 'Comando processado com sucesso' : 'Comando processado com ressalvas',
+          isSuccess ? 'success' : 'warning'
+        );
+        if (isSuccess) showAutoRefreshHint();
       }
     } catch (err) {
-      const msg = err.name === 'TypeError' && err.message.includes('Failed to fetch')
-        ? `Servidor inacessível em ${getBaseUrl()}`
-        : err.message;
+      const isNetworkError = err.name === 'TypeError' && err.message.includes('Failed to fetch');
+      const msg = isNetworkError
+        ? `Servidor inacessível em ${getBaseUrl()}. Verifique se a API está rodando.`
+        : `Erro inesperado: ${err.message}`;
       result.innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
       createToast('Falha na requisição', 'error');
     }
@@ -351,37 +459,40 @@ function initVoiceSection() {
   });
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
-
     micBtn.addEventListener('click', async () => {
       if (isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        micBtn.textContent = '🎤 Gravar';
+        stopRecordingTimer();
         return;
       }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/mp4';
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
         audioChunks = [];
 
-        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
         mediaRecorder.onstop = () => {
           const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-          const file = new File([blob], `recording.${mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm'}`, { type: mediaRecorder.mimeType });
+          const ext = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const file = new File([blob], `gravacao.${ext}`, { type: mediaRecorder.mimeType });
           updatePreview(file);
           stream.getTracks().forEach(t => t.stop());
+          createToast('Gravação concluída. Clique em Enviar para processar.', 'info');
         };
 
         mediaRecorder.start();
         isRecording = true;
-        micBtn.textContent = '⏹ Parar';
-        createToast('Gravando...', 'info');
+        startRecordingTimer();
+        createToast('Gravando... Clique novamente para parar.', 'info');
       } catch {
-        createToast('Acesso ao microfone negado', 'error');
+        createToast('Acesso ao microfone negado ou não disponível', 'error');
       }
     });
   } else {
@@ -683,6 +794,9 @@ function navigateTo(hash) {
   if (link) link.classList.add('active');
 
   window.location.hash = hash;
+
+  const headerBaseUrl = document.getElementById('headerBaseUrl');
+  if (headerBaseUrl) headerBaseUrl.textContent = getBaseUrl();
 
   if (hash === '#health') renderHealthSection();
   else if (hash === '#transactions') {
